@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amar Taka - আর্নিং অ্যাপ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+        import { createIcons, LogIn, User, Users, DollarSign, Ban, RefreshCcw, Check, X, Plus, Watch, MessageSquare, Briefcase, Share2, Copy, History, Settings, Mail, Send, TrendingUp, Search, Package, Zap, BarChart, HardHat, Lock, Key, Link } from 'https://unpkg.com/lucide@latest';
+        createIcons({ icons: { LogIn, User, Users, DollarSign, Ban, RefreshCcw, Check, X, Plus, Watch, MessageSquare, Briefcase, Share2, Copy, History, Settings, Mail, Send, TrendingUp, Search, Package, Zap, BarChart, HardHat, Lock, Key, Link } });
+    </script>
+    <style>
+        /* বাংলা ফন্ট */
+        @import url('https://fonts.googleapis.com/css2?family=Tiro+Bangla:ital@0;0&display=swap');
+        
+        body {
+            font-family: 'Tiro Bangla', sans-serif;
+            background-color: #f7f9fb;
+            color: #1f2937;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 10vh;
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            padding: 1rem;
+            min-height: 100vh;
+        }
+        
+        /* প্রাথমিক বাটন স্টাইল */
+        .btn-primary {
+            background-color: #10b981; 
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #059669;
+        }
+        .btn-danger {
+            background-color: #ef4444;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+
+        /* লোডার স্টাইল */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #10b981;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ইউজার কার্ড স্টাইল */
+        .user-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            background-color: #ffffff;
+            transition: all 0.2s;
+        }
+        .user-card.banned {
+            background-color: #fee2e2;
+            border-left: 5px solid #ef4444;
+        }
+        
+        /* মোডাল স্টাইল */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 380px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        /* মেসেজ ও প্যাকেজ কার্ড স্টাইল */
+        .message-card, .package-card {
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid #e5e7eb;
+            background-color: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .package-card.active {
+            border: 2px solid #10b981;
+            background-color: #ecfdf5;
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container" class="rounded-lg">
+        <h1 class="text-3xl font-bold text-center text-green-600 mb-6">Amar Taka (আমার টাকা)</h1>
+        <div id="ui-message" class="hidden p-3 mb-4 rounded-lg text-sm" role="alert"></div>
+
+        <div id="main-content">
+            <div class="flex justify-center items-center py-10">
+                <div class="loader"></div>
+            </div>
+        </div>
+
+        <div id="modal-container"></div>
+    </div>
+
+    <script>
+        // --- লোকাল স্টোরেজ কনফিগারেশন ---
+        const USER_KEY = 'amartaka_current_user';
+        const ALL_USERS_KEY = 'amartaka_all_users';
+        const WITHDRAWALS_KEY = 'amartaka_withdrawals';
+        const LAST_AD_KEY = 'amartaka_last_ad_time_'; 
+        const MESSAGES_KEY = 'amartaka_messages'; 
+        const DAILY_ADS_COUNT_KEY = 'amartaka_daily_ads_'; 
+        
+        // --- গ্লোবাল ভেরিয়েবল ---
+        let currentUser = null; 
+        let allUsers = [];
+        let withdrawalRequests = [];
+        let supportMessages = []; 
+        let referralCodeFromURL = null; 
+        
+        // --- আপনার হার্ডকোড করা অ্যাডমিন তথ্য ---
+        const ADMIN_PHONE = '01326477469'; 
+        const ADMIN_PASS = 'Siyam001@';    
+        const ADMIN_DEFAULT_BALANCE = 9999999999999999; 
+        
+        // --- অ্যাপের কনফিগারেশন ---
+        const MIN_WITHDRAW_AMOUNT = 200; 
+        const AD_EARN_AMOUNT = 5;      
+        const REFERRAL_BONUS = 50;     
+        const AD_COOLDOWN_SECONDS = 30; 
+
+        // --- প্যাকেজ কনফিগারেশন ---
+        const PACKAGES = [
+            {
+                id: 1,
+                name: 'Bronze (ব্রোঞ্জ)',
+                deposit: 500,
+                perDayIncome: 100,
+                dailyAds: Math.ceil(100 / AD_EARN_AMOUNT), 
+                withdrawLimit: 3,
+                referralRequired: 4
+            },
+            {
+                id: 2,
+                name: 'Silver (সিলভার)',
+                deposit: 2000,
+                perDayIncome: 300,
+                dailyAds: Math.ceil(300 / AD_EARN_AMOUNT), 
+                withdrawLimit: 3,
+                referralRequired: 3
+            },
+            {
+                id: 3,
+                name: 'Gold (গোল্ড)',
+                deposit: 5000,
+                perDayIncome: 600,
+                dailyAds: Math.ceil(600 / AD_EARN_AMOUNT), 
+                withdrawLimit: 3,
+                referralRequired: 3
+            },
+            {
+                id: 4,
+                name: 'Platinum (প্লাটিনাম)',
+                deposit: 10000,
+                perDayIncome: 1000,
+                dailyAds: Math.ceil(1000 / AD_EARN_AMOUNT), 
+                withdrawLimit: 3,
+                referralRequired: 3
+            },
+        ];
+
+        // DOM Elements
+        const mainContent = document.getElementById('main-content');
+        const uiMessage = document.getElementById('ui-message');
+        const modalContainer = document.getElementById('modal-container');
+
+        // --- ইউটিলিটি ফাংশন ---
+        
+        /** URL থেকে রেফারেল কোড লোড করা */
+        function getReferralCodeFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const refCode = urlParams.get('ref');
+            if (refCode && refCode.length === 11 && !isNaN(refCode)) {
+                referralCodeFromURL = refCode;
+                // URL থেকে রেফারেল কোড পেলে URL পরিষ্কার করা
+                if (window.history.replaceState) {
+                    const cleanUrl = window.location.href.split('?')[0];
+                    window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+                }
+            } else {
+                referralCodeFromURL = null;
+            }
+        }
+
+        /** সংখ্যাকে বাংলাতে পরিবর্তন করা */
+        function formatToBengali(number) {
+            if (typeof number !== 'number') return String(number);
+            return number.toLocaleString('bn-BD');
+        }
+
+        /** স্ট্রিং-কে হ্যাস সিমুলেশন করা (সরলভাবে) */
+        function hashPassword(password) {
+            return btoa(password);
+        }
+
+        /** আজকের দিনের জন্য একটি ইউনিক কী তৈরি করা */
+        function getDailyKey(key) {
+            const date = new Date();
+            const dateString = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+            return key + dateString + '_' + currentUser.phone;
+        }
+
+        /** দৈনিক অ্যাড কাউন্ট লোড করা */
+        function loadDailyAdCount() {
+            if (!currentUser) return 0;
+            const dailyKey = getDailyKey(DAILY_ADS_COUNT_KEY);
+            return parseInt(localStorage.getItem(dailyKey) || '0');
+        }
+
+        /** দৈনিক অ্যাড কাউন্ট সেভ করা */
+        function saveDailyAdCount(count) {
+            if (!currentUser) return;
+            const dailyKey = getDailyKey(DAILY_ADS_COUNT_KEY);
+            localStorage.setItem(dailyKey, count);
+        }
+
+        /** লোকাল স্টোরেজে ডেটা সেভ করা */
+        function saveData() {
+            localStorage.setItem(ALL_USERS_KEY, JSON.stringify(allUsers));
+            localStorage.setItem(WITHDRAWALS_KEY, JSON.stringify(withdrawalRequests));
+            localStorage.setItem(MESSAGES_KEY, JSON.stringify(supportMessages)); 
+            if (currentUser) {
+                const updatedUser = allUsers.find(u => u.phone === currentUser.phone);
+                if (updatedUser) {
+                    const userToStore = {...updatedUser, password: updatedUser.password}; 
+                    localStorage.setItem(USER_KEY, JSON.stringify(userToStore));
+                    currentUser = updatedUser; 
+                }
+            }
+        }
+
+        /** লোকাল স্টোরেজ থেকে ডেটা লোড করা */
+        function loadData() {
+            getReferralCodeFromURL(); 
+            try {
+                const usersJson = localStorage.getItem(ALL_USERS_KEY);
+                allUsers = usersJson ? JSON.parse(usersJson) : [];
+                
+                // --- অ্যাডমিন অ্যাকাউন্টের হ্যাস নিশ্চিত করা ও ব্যালেন্স সেট করা ---
+                const adminIndex = allUsers.findIndex(u => u.phone === ADMIN_PHONE);
+                const hashedAdminPass = hashPassword(ADMIN_PASS);
+
+                if (adminIndex === -1) {
+                    allUsers.unshift({
+                        phone: ADMIN_PHONE,
+                        password: hashedAdminPass, 
+                        balance: ADMIN_DEFAULT_BALANCE,
+                        isBanned: false,
+                        isAdmin: true,
+                        isRegistered: new Date().toLocaleString('bn-BD'),
+                        referredBy: null,
+                        referrals: 0,
+                        packageId: 0, 
+                        totalWithdrawals: 0,
+                        totalEarning: 0
+                    });
+                } else {
+                    allUsers[adminIndex].password = hashedAdminPass; 
+                    allUsers[adminIndex].balance = ADMIN_DEFAULT_BALANCE; 
+                    allUsers[adminIndex].isAdmin = true; 
+                }
+                localStorage.setItem(ALL_USERS_KEY, JSON.stringify(allUsers)); 
+
+                const withdrawalsJson = localStorage.getItem(WITHDRAWALS_KEY);
+                withdrawalRequests = withdrawalsJson ? JSON.parse(withdrawalsJson) : [];
+                
+                const messagesJson = localStorage.getItem(MESSAGES_KEY);
+                supportMessages = messagesJson ? JSON.parse(messagesJson) : [];
+                
+                const userJson = localStorage.getItem(USER_KEY);
+                if (userJson) {
+                    const storedUser = JSON.parse(userJson);
+                    const userCheck = allUsers.find(u => u.phone === storedUser.phone);
+                    if (userCheck && !userCheck.isBanned) {
+                        if (typeof userCheck.packageId === 'undefined') userCheck.packageId = 0;
+                        if (typeof userCheck.totalWithdrawals === 'undefined') userCheck.totalWithdrawals = 0;
+                        if (typeof userCheck.totalEarning === 'undefined') userCheck.totalEarning = 0;
+
+                        currentUser = userCheck; 
+                    } else {
+                        logout(false);
+                    }
+                }
+                
+            } catch (error) {
+                console.error("ডেটা লোড করতে সমস্যা:", error);
+            }
+            renderUI();
+        }
+
+        /** UI মেসেজ দেখানো */
+        function showMessage(message, type = 'success') {
+            uiMessage.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800', 'bg-yellow-100', 'text-yellow-800');
+            uiMessage.textContent = message;
+            if (type === 'success') {
+                uiMessage.classList.add('bg-green-100', 'text-green-800');
+            } else if (type === 'error') {
+                uiMessage.classList.add('bg-red-100', 'text-red-800');
+            } else if (type === 'warning') {
+                uiMessage.classList.add('bg-yellow-100', 'text-yellow-800');
+            }
+            setTimeout(() => {
+                uiMessage.classList.add('hidden');
+            }, 5000);
+        }
+
+        /** লগআউট ফাংশন */
+        function logout(doRender = true) {
+            localStorage.removeItem(USER_KEY);
+            currentUser = null;
+            if (doRender) {
+                showMessage('সফলভাবে লগআউট করা হয়েছে।', 'success');
+                renderUI();
+            }
+        }
+        
+        // --- প্রমাণীকরণ (Authentication) ---
+        
+        function renderLoginUI() {
+            mainContent.innerHTML = `
+                <div class="space-y-4 p-4 border rounded-xl shadow-md">
+                    <h2 class="text-2xl font-semibold text-center mb-6 flex items-center justify-center text-green-600">
+                        <i data-lucide="log-in" class="mr-2"></i> লগইন
+                    </h2>
+                    <input id="login-phone" type="tel" placeholder="ফোন নাম্বার (১১ ডিজিট)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" maxlength="11">
+                    <input id="login-password" type="password" placeholder="পাসওয়ার্ড" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                    
+                    <button onclick="handleLogin()" class="btn-primary w-full flex items-center justify-center">
+                        <i data-lucide="log-in" class="w-5 h-5 mr-2"></i> প্রবেশ করুন
+                    </button>
+                    
+                    <div class="flex justify-between items-center text-sm mt-4">
+                        <a href="#" onclick="renderPasswordResetUI()" class="text-red-500 font-medium hover:underline flex items-center">
+                           <i data-lucide="lock" class="w-4 h-4 mr-1"></i> পাসওয়ার্ড ভুলে গেছেন?
+                        </a>
+                        <a href="#" onclick="renderRegisterUI()" class="text-green-600 font-medium hover:underline">রেজিস্ট্রেশন করুন</a>
+                    </div>
+                </div>
+                <div class="mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg text-sm text-yellow-800">
+                    অ্যাডমিন লগইন: ফোন: <strong>${ADMIN_PHONE}</strong>, পাসওয়ার্ড: <strong>${ADMIN_PASS}</strong>
+                </div>
+            `;
+            // আইকন রেন্ডার
+            if (typeof createIcons === 'function') {
+                createIcons({ icons: { LogIn, Lock } });
+            }
+        }
+        
+        function handleLogin() {
+            const phone = document.getElementById('login-phone').value.trim();
+            const password = document.getElementById('login-password').value.trim();
+
+            if (phone.length !== 11 || isNaN(phone) || password.length < 4) {
+                showMessage('ফোন নাম্বার ১১ ডিজিটের এবং পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে।', 'error');
+                return;
+            }
+
+            const hashedInputPassword = hashPassword(password);
+            
+            const user = allUsers.find(u => u.phone === phone);
+
+            if (user && user.password === hashedInputPassword) {
+                if (user.isBanned) {
+                    showMessage('আপনার অ্যাকাউন্টটি অ্যাডমিন কর্তৃক ব্যান করা হয়েছে।', 'error');
+                    return;
+                }
+                currentUser = user;
+                localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
+                showMessage('লগইন সফল হয়েছে!', 'success');
+                renderUI();
+            } else {
+                showMessage('ফোন বা পাসওয়ার্ড ভুল।', 'error');
+            }
+        }
+
+        function renderPasswordResetUI() {
+            mainContent.innerHTML = `
+                <div class="space-y-4 p-4 border rounded-xl shadow-md">
+                    <h2 class="text-2xl font-semibold text-center mb-6 flex items-center justify-center text-red-500">
+                        <i data-lucide="lock" class="mr-2"></i> পাসওয়ার্ড রিসেট
+                    </h2>
+                    <p class="text-sm text-gray-600">আপনার রেজিস্টার্ড ফোন নাম্বার দিন। (OTP-এর বদলে, এখানে সরাসরি পাসওয়ার্ড রিসেট হবে)</p>
+                    <input id="reset-phone" type="tel" placeholder="ফোন নাম্বার (১১ ডিজিট)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500" maxlength="11">
+                    <input id="new-password" type="password" placeholder="নতুন পাসওয়ার্ড (কমপক্ষে ৪ অক্ষর)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500">
+                    <button onclick="handlePasswordReset()" class="btn-danger w-full flex items-center justify-center">
+                        <i data-lucide="key" class="w-5 h-5 mr-2"></i> পাসওয়ার্ড পরিবর্তন করুন
+                    </button>
+                    <p class="text-center text-sm text-gray-600 mt-4">
+                        <a href="#" onclick="renderLoginUI()" class="text-green-600 font-medium">লগইন স্ক্রিনে ফিরে যান</a>
+                    </p>
+                </div>
+            `;
+            // আইকন রেন্ডার
+            if (typeof createIcons === 'function') {
+                createIcons({ icons: { Lock, Key } });
+            }
+        }
+        
+        function handlePasswordReset() {
+            const phone = document.getElementById('reset-phone').value.trim();
+            const newPassword = document.getElementById('new-password').value.trim();
+
+            if (phone.length !== 11 || isNaN(phone)) {
+                showMessage('ফোন নাম্বার ১১ ডিজিটের হতে হবে।', 'error');
+                return;
+            }
+            if (newPassword.length < 4) {
+                showMessage('পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে।', 'error');
+                return;
+            }
+
+            const userIndex = allUsers.findIndex(u => u.phone === phone && !u.isAdmin);
+
+            if (userIndex === -1) {
+                showMessage('এই ফোন নাম্বারে কোনো ইউজার পাওয়া যায়নি।', 'error');
+                return;
+            }
+
+            if (confirm(`আপনি কি নিশ্চিত ${phone} অ্যাকাউন্টের পাসওয়ার্ড পরিবর্তন করবেন?`)) {
+                allUsers[userIndex].password = hashPassword(newPassword);
+                saveData();
+                showMessage('সফলভাবে পাসওয়ার্ড পরিবর্তন করা হয়েছে! এখন লগইন করুন।', 'success');
+                renderLoginUI();
+            }
+        }
+
+        // --- রেজিস্ট্রেশন UI (যদি ইউআরএল-এ রেফারেল কোড থাকে, তা পূরণ করবে) ---
+        function renderRegisterUI() {
+            mainContent.innerHTML = `
+                <div class="space-y-4 p-4 border rounded-xl shadow-md">
+                    <h2 class="text-2xl font-semibold text-center mb-6 flex items-center justify-center text-green-600">
+                        <i data-lucide="user" class="mr-2"></i> রেজিস্ট্রেশন
+                    </h2>
+                    <input id="reg-phone" type="tel" placeholder="ফোন নাম্বার (১১ ডিজিট)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" maxlength="11">
+                    <input id="reg-password" type="password" placeholder="পাসওয়ার্ড (কমপক্ষে ৪ অক্ষর)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                    <input id="reg-referral" type="tel" placeholder="রেফারেল কোড (ঐচ্ছিক)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" maxlength="11">
+                    
+                    <button onclick="handleRegister()" class="btn-primary w-full flex items-center justify-center">
+                        <i data-lucide="plus" class="w-5 h-5 mr-2"></i> রেজিস্ট্রেশন সম্পন্ন করুন
+                    </button>
+                    <p class="text-center text-sm text-gray-600 mt-4">
+                        অ্যাকাউন্ট আছে? <a href="#" onclick="renderLoginUI()" class="text-green-600 font-medium">লগইন করুন</a>
+                    </p>
+                </div>
+            `;
+            // আইকন রেন্ডার
+            if (typeof createIcons === 'function') {
+                createIcons({ icons: { User, Plus } });
+            }
+            
+            // নতুন: URL থেকে আসা রেফারেল কোড স্বয়ংক্রিয়ভাবে ইনপুট ফিল্ডে বসানো
+            if (referralCodeFromURL) {
+                document.getElementById('reg-referral').value = referralCodeFromURL;
+                showMessage(`রেফারেল লিঙ্ক থেকে এসেছেন। কোড: ${referralCodeFromURL} স্বয়ংক্রিয়ভাবে যুক্ত হয়েছে।`, 'success');
+            }
+        }
+
+        function handleRegister() {
+            const phone = document.getElementById('reg-phone').value.trim();
+            const password = document.getElementById('reg-password').value.trim();
+            const referralCode = document.getElementById('reg-referral').value.trim();
+            let initialBalance = 0;
+            let referrer = null;
+
+            if (phone.length !== 11 || isNaN(phone)) {
+                showMessage('ফোন নাম্বার ১১ ডিজিটের হতে হবে।', 'error');
+                return;
+            }
+            if (password.length < 4) {
+                showMessage('পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে।', 'error');
+                return;
+            }
+
+            if (allUsers.find(u => u.phone === phone)) {
+                showMessage('এই ফোন নাম্বার দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট আছে।', 'error');
+                return;
+            }
+            
+            // রেফারেল লজিক
+            if (referralCode && referralCode.length === 11 && !isNaN(referralCode) && referralCode !== phone) {
+                referrer = allUsers.find(u => u.phone === referralCode && !u.isAdmin && !u.isBanned);
+                if (referrer) {
+                    const referrerIndex = allUsers.findIndex(u => u.phone === referrer.phone);
+                    allUsers[referrerIndex].balance += REFERRAL_BONUS;
+                    allUsers[referrerIndex].referrals += 1;
+                    showMessage(`${referrer.phone} কে ৳${formatToBengali(REFERRAL_BONUS)} বোনাস দেওয়া হয়েছে।`, 'success');
+                } else {
+                    showMessage('আপনার দেওয়া রেফারেল কোডটি সঠিক নয় বা ইউজারটি নিষিদ্ধ।', 'error');
+                }
+            } else if (referralCode && referralCode.length > 0) {
+                 showMessage('রেফারেল কোডটি ১১ ডিজিটের ফোন নাম্বার হতে হবে এবং নিজের নাম্বার দেওয়া যাবে না।', 'error');
+            }
+
+            const newUser = {
+                phone: phone,
+                password: hashPassword(password), 
+                balance: initialBalance, 
+                isBanned: false,
+                isAdmin: false,
+                isRegistered: new Date().toLocaleString('bn-BD'),
+                referredBy: referrer ? referrer.phone : null,
+                referrals: 0,
+                packageId: 0,
+                totalWithdrawals: 0,
+                totalEarning: 0
+            };
+
+            allUsers.push(newUser);
+            saveData();
+            showMessage(`রেজিস্ট্রেশন সফল! আপনি এখন লগইন করতে পারেন। ${referrer ? `রেফারেল বোনাস ${formatToBengali(REFERRAL_BONUS)} টাকা আপনার বন্ধু পেয়েছে!` : ''}`, 'success');
+            renderLoginUI();
+        }
+
+        // --- ইউজার প্যানেল ফাংশনালিটি ---
+
+        function renderUserUI() {
+            if (!currentUser) return;
+            
+            const userPackage = PACKAGES.find(p => p.id === currentUser.packageId);
+            const isPackageActive = !!userPackage;
+            
+            const dailyAdCount = loadDailyAdCount();
+            const adsRemaining = isPackageActive ? userPackage.dailyAds - dailyAdCount : 0;
+            const canWatchAd = adsRemaining > 0;
+            const dailyIncomeAchieved = dailyAdCount * AD_EARN_AMOUNT;
+
+            const lastAdTime = parseInt(localStorage.getItem(LAST_AD_KEY + currentUser.phone) || '0');
+            const timeSinceLastAd = (Date.now() - lastAdTime) / 1000;
+            const isCooldown = timeSinceLastAd < AD_COOLDOWN_SECONDS;
+            const remainingTime = isCooldown ? Math.ceil(AD_COOLDOWN_SECONDS - timeSinceLastAd) : 0;
+
+            const adButtonText = isCooldown 
+                ? `অপেক্ষা করুন (${formatToBengali(remainingTime)} সে.)` 
+                : canWatchAd 
+                    ? `অ্যাড দেখুন (পাবে ৳${formatToBengali(AD_EARN_AMOUNT)})` 
+                    : isPackageActive 
+                        ? `আজকের কাজ শেষ` 
+                        : `প্যাকেজ কিনুন`;
+            
+            // রেফারেল লিংক তৈরি করা
+            const referralLink = `${window.location.origin}${window.location.pathname}?ref=${currentUser.phone}`;
+
+
+            mainContent.innerHTML = `
+                <div class="bg-green-600 text-white p-6 rounded-xl shadow-lg mb-6">
+                    <h2 class="text-xl font-medium flex items-center"><i data-lucide="user" class="mr-2 w-5 h-5"></i> প্রোফাইল</h2>
+                    <p class="text-4xl font-bold mt-2">৳${formatToBengali(currentUser.balance)}</p>
+                    <p class="text-sm opacity-90">ফোন: ${currentUser.phone}</p>
+                    <p class="text-xs opacity-80 mt-1 flex items-center">
+                        <i data-lucide="package" class="w-4 h-4 mr-1"></i> প্যাকেজ: <strong class="ml-1">${isPackageActive ? userPackage.name : 'Free (ফ্রি)'}</strong>
+                    </p>
+                </div>
+                
+                <h3 class="text-xl font-semibold border-b pb-2 flex items-center text-green-600"><i data-lucide="share-2" class="mr-2 w-5 h-5"></i> রেফার করুন ও আয় করুন</h3>
+                <div class="p-4 border rounded-lg bg-indigo-50 mb-6">
+                    <p class="text-sm font-medium mb-2">আপনার রেফারেল কোড: <strong class="text-indigo-700">${currentUser.phone}</strong></p>
+                    <p class="text-xs text-gray-700 mb-2">প্রতি সফল রেফারে আপনি পাবেন ৳${formatToBengali(REFERRAL_BONUS)} বোনাস।</p>
+                    
+                    <label for="referral-link" class="block text-xs font-medium text-gray-600">আপনার সরাসরি রেফারেল লিঙ্ক:</label>
+                    <div class="flex mt-1">
+                        <input id="referral-link" type="text" value="${referralLink}" readonly class="w-full text-xs p-2 border border-gray-300 rounded-l-lg bg-white overflow-hidden">
+                        <button onclick="copyToClipboard('${referralLink}')" class="btn-secondary flex items-center p-2 rounded-l-none bg-indigo-600 hover:bg-indigo-700">
+                             <i data-lucide="copy" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    
+                    <h3 class="text-xl font-semibold border-b pb-2 flex items-center text-green-600"><i data-lucide="package" class="mr-2 w-5 h-5"></i> প্যাকেজ কিনুন</h3>
+                    <div class="p-4 border rounded-lg bg-green-50 text-center">
+                        ${isPackageActive 
+                            ? `<p class="text-sm font-bold text-green-700">আপনার বর্তমান প্যাকেজ: ${userPackage.name}</p>`
+                            : `<p class="text-sm font-medium mb-3">কাজ শুরু করতে একটি প্যাকেজ কিনুন।</p>`
+                        }
+                        <button onclick="renderPackagesUI()" class="btn-primary w-full flex items-center justify-center bg-green-700 hover:bg-green-800 mt-2">
+                            <i data-lucide="zap" class="w-5 h-5 mr-2"></i> সকল প্যাকেজ দেখুন
+                        </button>
+                    </div>
+
+                    <h3 class="text-xl font-semibold border-b pb-2 flex items-center text-green-600"><i data-lucide="watch" class="mr-2 w-5 h-5"></i> বিজ্ঞাপন দেখুন</h3>
+                    <div id="ad-area" class="p-4 border rounded-lg ${isPackageActive ? 'bg-gray-50' : 'bg-red-50'} text-center">
+                        ${isPackageActive ? `
+                            <p class="text-sm font-medium mb-2">দৈনিক লক্ষ্য: ৳${formatToBengali(userPackage.perDayIncome)} (${formatToBengali(userPackage.dailyAds)} অ্যাড)</p>
+                            <p class="text-xs mb-3 text-gray-600">আজ দেখা হয়েছে: ${formatToBengali(dailyAdCount)} টি | আয়: ৳${formatToBengali(dailyIncomeAchieved)}</p>
+                        ` : `
+                            <p class="text-red-600 mb-2 font-medium">কাজ করার জন্য আগে একটি প্যাকেজ কিনতে হবে!</p>
+                        `}
+                        
+                        <button onclick="${canWatchAd && !isCooldown ? 'watchAd()' : (isPackageActive ? '' : 'renderPackagesUI()')}" id="watch-ad-btn" class="btn-primary flex items-center mx-auto ${canWatchAd && !isCooldown ? '' : 'opacity-50 cursor-not-allowed'}" ${canWatchAd && !isCooldown ? '' : 'disabled'}>
+                            <i data-lucide="watch" class="w-5 h-5 mr-2"></i> ${adButtonText}
+                        </button>
+                        ${isCooldown ? `<p class="text-red-600 text-xs mt-2">দয়া করে ${formatToBengali(remainingTime)} সেকেন্ড অপেক্ষা করুন।</p>` : ''}
+                    </div>
+
+                    <h3 class="text-xl font-semibold border-b pb-2 mt-6 flex items-center text-green-600"><i data-lucide="dollar-sign" class="mr-2 w-5 h-5"></i> উইথড্র</h3>
+                    <div class="p-4 border rounded-lg bg-yellow-50">
+                        <p class="text-sm font-medium mb-3">সর্বনিম্ন উইথড্র: ৳${formatToBengali(MIN_WITHDRAW_AMOUNT)}</p>
+                        <button onclick="checkAndRenderWithdrawModal()" class="btn-danger w-full flex items-center justify-center">
+                            <i data-lucide="dollar-sign" class="w-5 h-5 mr-2"></i> উইথড্র রিকোয়েস্ট দিন
+                        </button>
+                    </div>
+
+                    <h3 class="text-xl font-semibold border-b pb-2 mt-6 flex items-center text-green-600"><i data-lucide="message-square" class="mr-2 w-5 h-5"></i> সাপোর্ট/ডিপোজিট</h3>
+                    <div class="p-4 border rounded-lg bg-blue-50 text-center">
+                        <p class="text-sm font-medium mb-3">সাপোর্ট বা ডিপোজিটের জন্য মেসেজ পাঠান।</p>
+                        <button onclick="renderSupportModal()" class="btn-primary w-full flex items-center justify-center bg-blue-600 hover:bg-blue-700">
+                            <i data-lucide="send" class="w-5 h-5 mr-2"></i> মেসেজ পাঠান
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-8 text-center">
+                    <button onclick="logout()" class="text-gray-500 hover:text-red-600 text-sm font-medium flex items-center mx-auto">
+                        <i data-lucide="log-in" class="w-4 h-4 mr-1 transform rotate-180"></i> লগআউট
+                    </button>
+                </div>
+            `;
+            // আইকন রেন্ডার
+            if (typeof createIcons === 'function') {
+                createIcons({ icons: { User, DollarSign, LogIn, Watch, MessageSquare, Package, Zap, Send, Share2, Copy } });
+            }
+            if (isCooldown && canWatchAd) {
+                setTimeout(renderUserUI, remainingTime * 1000 + 100);
+            }
+        }
+        
+        // --- নতুন কপি ফাংশন ---
+        function copyToClipboard(text) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showMessage('রেফারেল লিঙ্ক কপি করা হয়েছে!', 'success');
+                }).catch(err => {
+                    showMessage('কপি করতে ব্যর্থ: অনুগ্রহ করে ম্যানুয়ালি কপি করুন।', 'error');
+                });
+            } else {
+                showMessage('আপনার ব্রাউজারে অটো-কপি সাপোর্ট করে না। অনুগ্রহ করে ম্যানুয়ালি কপি করুন।', 'warning');
+            }
+        }
+        
+        function renderPackagesUI() {
+            if (!currentUser) return;
+
+            const packageHtml = PACKAGES.map(p => {
+                const isActive = currentUser.packageId === p.id;
+                return `
+                    <div class="package-card ${isActive ? 'active' : ''} p-4">
+                        <h4 class="text-xl font-bold ${isActive ? 'text-green-600' : 'text-gray-800'} flex items-center">
+                            <i data-lucide="package" class="mr-2 w-5 h-5"></i> ${p.name}
+                        </h4>
+                        <p class="text-2xl font-extrabold my-2 text-red-600">৳${formatToBengali(p.deposit)}</p>
+                        <ul class="list-disc list-inside text-sm space-y-1 text-gray-700">
+                            <li><i data-lucide="dollar-sign" class="w-3 h-3 inline mr-1 text-green-500"></i> দৈনিক আয়: ৳${formatToBengali(p.perDayIncome)}</li>
+                            <li><i data-lucide="watch" class="w-3 h-3 inline mr-1 text-green-500"></i> দৈনিক কাজ: ${formatToBengali(p.dailyAds)} টি অ্যাড</li>
+                            <li><i data-lucide="trending-up" class="w-3 h-3 inline mr-1 text-green-500"></i> উইথড্র শর্ত: ${formatToBengali(p.withdrawLimit)} উইথড্রর পর ${formatToBengali(p.referralRequired)} রেফার</li>
+                        </ul>
+                        <button 
+                            onclick="handlePackagePurchase(${p.id}, ${p.deposit})" 
+                            class="w-full mt-4 py-2 rounded-lg font-bold text-sm ${isActive ? 'bg-green-600 text-white cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}"
+                            ${isActive ? 'disabled' : ''}
+                        >
+                            ${isActive ? 'বর্তমান প্যাকেজ' : 'প্যাকেজ কিনুন'}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            mainContent.innerHTML = `
+                <div class="mb-4 flex justify-between items-center">
+                    <h2 class="text-xl font-bold flex items-center text-green-600"><i data-lucide="package" class="mr-2"></i> প্যাকেজ</h2>
+                    <button onclick="renderUserUI()" class="text-green-600 text-sm font-medium hover:underline">ফিরে যান</button>
+                </div>
+                <p class="mb-4 text-sm text-gray-600">প্যাকেজ কিনতে প্রথমে অ্যাডমিনকে ডিপোজিট করতে হবে এবং তারপর এখানে ক্লিক করতে হবে।</p>
+                <div class="space-y-4">
+                    ${packageHtml}
+                </div>
+            `;
+            // আইকন রেন্ডার
+            if (typeof createIcons === 'function') {
+                createIcons({ icons: { Package, DollarSign, Watch, TrendingUp } });
+            }
+        }
+        
+        function handlePackagePurchase(packageId, depositAmount) {
+            if (!currentUser) return;
+            
+            const userIndex = allUsers.findIndex(u => u.phone === currentUser.phone);
+            if (userIndex === -1) {
+                showMessage('ইউজার ডেটা খুঁজে পাওয়া যায়নি।', 'error');
+                return;
+            }
+
+            if (allUsers[userIndex].packageId !== 0) {
+                 showMessage('আপনার ইতিমধ্যে একটি প্যাকেজ কেনা আছে।', 'error');
+                 return;
+            }
+
+            if (currentUser.balance < depositAmount) {
+                showMessage(`প্যাকেজটি কেনার জন্য আপনার ৳${formatToBengali(depositAmount)} ব্যালেন্স প্রয়োজন।`, 'error');
+                return;
+            }
+
+            if (confirm(`আপনি কি নিশ্চিত ৳${formatToBengali(depositAmount)} দিয়ে এই প্যাকেজটি কিনবেন? ব্যালেন্স থেকে টাকা কেটে নেওয়া হবে।`)) {
+                
+                allUsers[userIndex].balance -= depositAmount;
+                allUsers[userIndex].packageId = packageId;
+
+                saveData();
+                showMessage('সফলভাবে প্যাকেজ কেনা হয়েছে! এখন আপনি কাজ শুরু করতে পারেন।', 'success');
+                renderUserUI();
+            }
+        }
+        
+        function watchAd() {
+            if (!currentUser) return;
+            
+            const userPackage = PACKAGES.find(p => p.id === currentUser.packageId);
+            if (!userPackage) {
+                showMessage('কাজ করার জন্য আগে একটি প্যাকেজ কিনতে হবে!', 'warning');
+                return;
+            }
+
+            const dailyAdCount = loadDailyAdCount();
+            if (dailyAdCount >= userPackage.dailyAds) {
+                showMessage('আপনার আজকের অ্যাড দেখার সীমা পূর্ণ হয়েছে। আগামীকাল আবার চেষ্টা করুন।', 'warning');
+                return;
+            }
+            
+            const lastAdTime = parseInt(localStorage.getItem(LAST_AD_KEY + currentUser.phone) || '0');
+            const timeSinceLastAd = (Date.now() - lastAdTime) / 1000;
+            
+            if (timeSinceLastAd < AD_COOLDOWN_SECONDS) {
+                showMessage(`দয়া করে ${formatToBengali(Math.ceil(AD_COOLDOWN_SECONDS - timeSinceLastAd))} সেকেন্ড অপেক্ষা করুন।`, 'error');
+                return;
+            }
+
+            const userIndex = allUsers.findIndex(u => u.phone === currentUser.phone);
+            if (userIndex !== -1) {
+                allUsers[userIndex].balance += AD_EARN_AMOUNT;
+                allUsers[userIndex].totalEarning += AD_EARN_AMOUNT;
+                saveDailyAdCount(dailyAdCount + 1);
+                localStorage.setItem(LAST_AD_KEY + currentUser.phone, Date.now());
+                saveData();
+                
+                showMessage(`সফল! আপনি ৳${formatToBengali(AD_EARN_AMOUNT)} পেলেন।`, 'success');
+                renderUserUI(); 
+            }
+        }
+
+        function checkAndRenderWithdrawModal() {
+            if (!currentUser) return;
+
+            const userPackage = PACKAGES.find(p => p.id === currentUser.packageId);
+            
+            if (!userPackage) {
+                showMessage('উইথড্র করার জন্য আগে একটি প্যাকেজ কিনতে হবে।', 'error');
+                return;
+            }
+            
+            if (currentUser.totalWithdrawals >= userPackage.withdrawLimit) {
+                if (currentUser.referrals < userPackage.referralRequired) {
+                    showMessage(`উইথড্র করার জন্য আপনাকে আরো ${formatToBengali(userPackage.referralRequired - currentUser.referrals)} জন রেফার করতে হবে।`, 'error');
+                    return;
+                }
+            }
+
+            renderWithdrawModal(userPackage);
+        }
+
+        function renderWithdrawModal(userPackage) {
+            const packageInfo = userPackage ? `
+                <p class="text-xs text-blue-600 mt-2">প্যাকেজ: ${userPackage.name}</p>
+                <p class="text-xs text-blue-600">উইথড্র: ${formatToBengali(currentUser.totalWithdrawals)}/${formatToBengali(userPackage.withdrawLimit)} | রেফার: ${formatToBengali(currentUser.referrals)}/${formatToBengali(userPackage.referralRequired)}</p>
+             ` : '';
+
+            modalContainer.innerHTML = `
+                <div class="modal-backdrop" onclick="closeModal()">
+                    <div class="modal-content" onclick="event.stopPropagation()">
+                        <h3 class="text-xl font-bold mb-4 flex items-center text-red-600"><i data-lucide="dollar-sign" class="mr-2 w-6 h-6"></i> উইথড্র রিকোয়েস্ট</h3>
+                        <p class="text-sm text-gray-600">আপনার বর্তমান ব্যালেন্স: ৳${formatToBengali(currentUser.balance)}</p>
+                        ${packageInfo}
+                        <div class="space-y-3 mt-4">
+                            <label for="withdraw-amount" class="block text-sm font-medium text-gray-700">পরিমাণ (সর্বনিম্ন ৳${formatToBengali(MIN_WITHDRAW_AMOUNT)})</label>
+                            <input id="withdraw-amount" type="number" placeholder="টাকার পরিমাণ" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500">
+                            
+                            <label for="withdraw-method" class="block text-sm font-medium text-gray-700">পেমেন্ট মেথড</label>
+                            <select id="withdraw-method" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500">
+                                <option value="Bkash">বিকাশ</option>
+                                <option value="Nagad">নগদ</option>
+                                <option value="Rocket">রকেট</option>
+                            </select>
+
+                            <label for="account-number" class="block text-sm font-medium text-gray-700">অ্যাকাউন্ট নাম্বার</label>
+                            <input id="account-number" type="tel" placeholder="আপনার ফোন/অ্যাকাউন্ট নাম্বার" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500" maxlength="11">
+                        </div>
+                        
+                        <div class="flex justify-end space-x-3 mt-6">
+                            <button onclick="closeModal()" class="py-2 px-4 text-gray-600 border rounded-lg hover:bg-gray-100">বাতিল</button>
+                            <button onclick="handleWithdrawRequest()" class="btn-danger flex items-center">
+                                <i data-lucide="dollar-sign" class="w-5 h-5 mr-2"></i> রিকোয়েস্ট দিন
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            // আইকন রেন্ডার
+            if (typeof createIcons === 'function') {
+                createIcons({ icons: { DollarSign } });
+            }
+        }
+
+        function handleWithdrawRequest() {
+            const amount = parseInt(document.getElementById('withdraw-amount').value);
+            const method = document.getElementById('withdraw-method').value;
+            const accountNumber = document.getElementById('account-number').value.trim();
+            const userPackage = PACKAGES.find(p => p.id === currentUser.packageId);
+
+            if (isNaN(amount) || amount < MIN_WITHDRAW_AMOUNT) {
+                showMessage(`উইথড্র পরিমাণ সর্বনিম্ন ৳${formatToBengali(MIN_WITHDRAW_AMOUNT)} হতে হবে।`, 'error');
+                return;
+            }
+            if (amount > currentUser.balance) {
+                showMessage('আপনার অ্যাকাউন্টে পর্যাপ্ত ব্যালেন্স নেই।', 'error');
+                return;
+            }
+            if (accountNumber.length < 10) {
+                showMessage('সঠিক অ্যাকাউন্ট নাম্বার দিন।', 'error');
+                return;
+            }
+            // প্যাকেজের শর্তগুলো আবার নিশ্চিত করা 
+            if (userPackage && currentUser.totalWithdrawals >= userPackage.withdrawLimit && currentUser.referrals < userPackage.referralRequired) {
+                 showMessage(`শর্ত পূরণের জন্য আরো ${formatToBengali(userPackage.referralRequired - currentUser.referrals)} জন রেফার প্রয়োজন।`, 'error');
+                 return;
+            }
+
+            const newWithdrawal = {
+                id: Date.now(),
+                phone: currentUser.phone,
+                amount: amount,
+                method: method,
+                account: accountNumber,
+                date: new Date().toLocaleString('bn-BD'),
+                status: 'Pending'
+            };
+
+            withdrawalRequests.push(newWithdrawal);
+            
+            const userIndex = allUsers.findIndex(u => u.phone === currentUser.phone);
+            if (userIndex !== -1) {
+                allUsers[userIndex].totalWithdrawals += 1; 
+                allUsers[userIndex].balance -= amount;
+                saveData();
+            }
+
+            closeModal();
+            showMessage('উইথড্র রিকোয়েস্ট সফলভাবে পাঠানো হয়েছে। অ্যাডমিন অনুমোদন করলে টাকা পাবেন।', 'success');
+            renderUserUI();
+        }
+
+        function renderSupportModal() {
+            modalContainer.innerHTML = `
+                <div class="modal-backdrop" onclick="closeModal()">
+                    <div class="modal-content" onclick="event.stopPropagation()">
+                        <h3 class="text-xl font-bold mb-4 flex items-center text-blue-600"><i data-lucide="mail" class="mr-2 w-6 h-6"></i> সাপোর্ট মেসেজ</h3>
+                        <p class="text-sm text-gray-600 mb-4">অ্যাডমিনের কাছে সরাসরি মেসেজ পাঠান।</p>
+                        <div class="space-y-3">
+                            <label for="message-subject" class="block text-sm font-medium text-gray-700">বিষয়</label>
+                            <select id="message-subject" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="Deposit">ডিপোজিট</option>
+                                <option value="Support">সাপোর্ট/অন্যান্য</option>
+                            </select>
+                            <label for="message-content" class="block text-sm font-medium text-gray-700">আপনার মেসেজ</label>
+                            <textarea id="message-content" placeholder="বিস্তারিত লিখুন..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" rows="4"></textarea>
+                        </div>
+                        
+                        <div class="flex justify-end space-x-3 mt-6">
+                            <button onclick="closeModal()" class="py-2 px-4 text-gray-600 border rounded-lg hover:bg-gray-100">বাতিল</button>
+                            <button onclick="handleSupportMessage()" class="btn-primary flex items-center">
+                                <i data-lucide="send" class="w-5 h-5 mr-2"></i> পাঠান
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            // আইকন রেন্ডার
+            if (typeof createIcons === 'function') {
+                createIcons({ icons: { Mail, Send } });
+            }
+        }
+
+        function handleSupportMessage() {
+            const subject = document.getElementById('message-subject').value;
+            const content = document.getElementById('message-content').value.trim();
+
+            if (content.length < 5) {
+                showMessage('মেসেজটি কমপক্ষে ৫ অক্ষরের হতে হবে।', 'error');
+                return;
+            }
+
+            const newMessage = {
+                id: Date.now(),
+                phone: currentUser.phone,
+                subject: subject,
+                content: content,
+                date: new Date().toLocaleString('bn-BD'),
+                status: 'Unread'
+            };
+
+            supportMessages.push(newMessage);
+            saveData();
+            closeModal();
+            showMessage('মেসেজ সফলভাবে অ্যাডমিনের কাছে পাঠানো হয়েছে।', 'success');
+        }
+
+        function closeModal() { modalContainer.innerHTML = ''; }
+
+
+        // --- অ্যাডমিন প্যানেল ফাংশনালিটি ---
+        
+        function renderAdminUI() {
+            if (!currentUser || !currentUser.isAdmin) return;
+
+            const totalUsers = allUsers.filter(u => !u.isAdmin).length;
+            const pendingWithdrawals = withdrawalRequests.filter(r => r.status === 'Pending').length;
+            const unreadMessages = supportMessages.filter(m => m.status === 'Unread').length;
+
+            mainContent.innerHTML = `
+                <div class="bg-red-600 text-white p-4 rounded-xl shadow-lg mb-6">
+                    <h2 class="text-2xl font-bold flex items-center"><i data-lucide="briefcase" class="mr-2 w-6 h-6"></i> অ্যাডমিন প্যানেল</h2>
+                    <p class="text-sm opacity-90">স্বাগতম, অ্যাডমিন! (আপনার ব্যালেন্স: ৳${formatToBengali(currentUser.balance)})</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded-xl shadow border border-green-200 text-center">
+                        <i data-lucide="users" class="w-8 h-8 mx-auto text-green-600 mb-2"></i>
+                        <p class="text-xl font-bold">${formatToBengali(totalUsers)}</p>
+                        <p class="text-sm text-gray-500">মোট ইউজার</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow border border-red-200 text-center cursor-pointer" onclick="renderAdminWithdrawalsUI()">
+                        <i data-lucide="dollar-sign" class="w-8 h-8 mx-auto text-red-600 mb-2"></i>
+                        <p class="text-xl font-bold ${pendingWithdrawals > 0 ? 'text-red-600' : 'text-gray-800'}">${formatToBengali(pendingWithdrawals)}</p>
+                        <p class="text-sm text-gray-500">পেন্ডিং উইথড্র</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow border border-blue-200 text-center cursor-pointer" onclick="renderAdminMessagesUI()">
+                        <i data-lucide="mail" class="w-8 h-8 mx-auto text-blue-600 mb-2"></i>
+                        <p class="text-xl font-bold ${unreadMessages > 0 ? 'text-blue-600' : 'text-gray-800'}">${formatToBengali(unreadMessages)}</p>
+                        <p class="text-sm text-gray-500">নতুন মেসেজ</p>
+                    </div>
+                     <div class="bg-white p-4 rounded-xl shadow border border-yellow-200 text-center cursor-pointer" onclick="renderSuperAdminTools()">
+                        <i data-lucide="hardhat" class="w-8 h-8 mx-auto text-yellow-600 mb-2"></i>
+                        <p class="text-sm font-bold text-gray-800 pt-3">সুপার টুলস</p>
+                        <p class="text-xs text-gray-500">(সকল নিয়ন্ত্রণ)</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <button onclick="renderAdminUsersUI()" class="btn-primary w-full flex items-center justify-center">
+                        <i data-lucide="users" class="w-5 h-5 mr-2"></i> ইউজার ম্যানেজমেন্ট
+                    </button>
+                    <button onclick="renderAdminWithdrawalsUI()" class="btn-danger w-full flex items-center justify-center">
+                        <i data-lucide="dollar-sign" class="w-5 h-5 mr-2"></i> উইথড্র ম্যানেজমেন্ট
+                    </button>
+                    <button onclick="renderAdminMessagesUI()" class="btn-secondary w-full flex items-center justify-center">
+                        <i data-lucide="mail" class="w-5 h-5 mr-2"></i> সাপোর্ট মেসেজ
+                    </button>
+                    <button onclick="renderSuperAdminTools()" class="bg-yellow-600 hover:bg-yellow-700 text-white w-full flex items-center justify-center py-3 rounded-lg font-bold">
+                        <i data-lucide="hardhat" class="w-5 h-5 mr-2"></i> সুপার অ্যাডমিন টুলস
+                    </button>
+                </div>
+                
+                <div class="mt-8 text-center">
+                    <button onclick="logout()" class="text-gray-500 hover:text-red-600 text-sm font-medium flex items-center mx-auto">
+                        <i data-lucide="log-in" class="w-4 h-4 mr-1 transform rotate-180"></i> লগআউট
+                    </button>
+                </div>
+            `;
+            // আইকন রেন্ডার
+            if (typeof createIcons === 'function') {
+                createIcons({ icons: { Users, DollarSign, LogIn, Briefcase, Settings, Mail, HardHat } });
+            }
+        }
+        
+        function renderSuperAdminTools() {
+            if (!currentUser || !currentUser.isAdmin) return;
+
+            mainContent.innerHTML = `
+                <div class="mb-4 flex justify-between items-center">
+                    <h2 class="text-xl font-bold flex items-center text-yellow-600"><i data-lucide="hardhat" class="mr-2"></i> সুপার অ্যাডমিন টুলস</h2>
+                    <button onclick="renderAdminUI()" class="text-green-600 text-sm font-medium hover:underline">ফিরে যান</button>
+                </div>
+
+                <div class="p-4 border rounded-xl shadow-md space-y-4 bg-white">
+                    <h3 class="text-lg font-bold text-red-600 border-b pb-2 flex items-center"><i data-lucide="bar-chart" class="mr-2"></i> ইউজার নিয়ন্ত্রণ</h3>
+
+                    <button onclick="renderAdminBalanceTransferUI()" class="btn-primary w-full flex items-center justify-center bg-yellow-500 hover:bg-yellow-600">
+                        <i data-lucide="trending-up" class="w-5 h-5 mr-2"></i> ব্যালেন্স ট্রান্সফার (যোগ/হ্রাস)
+                    </button>
+
+                    <button onclick="renderAdminUserManagement()" class="btn-primary w-full flex items-center justify-center bg-blue-500 hover:bg-blue-600">
+                        <i data-lucide="user" class="w-5 h-5 mr-2"></i> ইউজার ডিটেইলস & প্যাকেজ পরিবর্তন
+                    </button>
+
+                    <button onclick="renderAdminWithdrawalsUI()" class="btn-primary w-full flex items-center justify-center bg-red-500 hover:bg-red-600">
+                        <i data-lucide="dollar-sign" class="w-5 h-5 mr-2"></i> পেমেন্ট অনুমোদন/বাতিল
+                    </button>
+                    
+                    <h3 class="text-lg font-bold text-red-600 border-b pb-2 flex items-center mt-6"><i data-lucide="settings" class="mr-2"></i> সাইট সেটিং</h3>
+                    <p class="text-sm text-gray-500">এই সেকশন থেকে নতুন অফার, ছবি, বা ড্যাশবোর্ড টেক্সট পরিবর্তন করা যাবে। (বর্তমানে কেবল UI পরিবর্তন করা সম্ভব। ব্যাকএন্ডের জন্য সার্ভার প্রয়োজন।)</p>
+                    
+                    <button onclick="clearLocalData()" class="btn-secondary w-full flex items-center justify-center">
+                        <i data-lucide="settings" class="w-5 h-5 mr-2"></i> লোকাল ডেটা রিসেট (টেস্টিংয়ের জন্য)
+                    </button>
+                </div>
+            `;
+            // আইকন রেন্ডার
+            if (typeof createIcons === 'function') {
+                createIcons({ icons: { HardHat, TrendingUp, User, DollarSign, BarChart, Settings } });
+            }
+        }
+
+        function renderAdminUserManagement() {
+            if (!currentUser || !currentUser.isAdmin) return;
+
+            mainContent.innerHTML = `
+                <div class="mb-4 flex justify-between items-center">
+                    <h2 class="text-xl font-bold flex items-center text-blue-600"><i data-lucide="user" class="mr-2"></i> ইউজার ডিটেইলস & প্যাকেজ</h2>
+                    <button onclick="renderSuperAdminTools()" class="text-green-600 text-sm font-medium hover:underline">ফিরে যান</button>
+                </div>
+                
+                <div class="p-4 border rounded-xl shadow-md space-y-4 bg-blue-50">
+                    <label for="search-user-phone" class="block text-sm font-medium text-gray-700">ইউজার ফোন নাম্বার (১১ ডিজিট)</label>
+                    <div class="flex space-x-2">
+                        <input id="search-user-phone" type="tel" placeholder="ইউজারের ফোন নাম্বার" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" maxlength="11">
+                        <button onclick="searchUserForDetails()" class="btn-primary flex items-center p-3">
+                            <i data-lucide="search" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="user-details-area" class="mt-4">
+                    <p class="text-center text-gray-500 p-4">অনুসন্ধান করার জন্য একটি ফোন নাম্বার দিন।</p>
+                </div>
+            `;
+            // আইকন রেন্ডার
+            if (typeof createIcons === 'function') {
+                createIcons({ icons: { User, Search } });
+            }
+        }
+        
+        function searchUserForDetails() {
+            const phone = document.getElementById('search-user-phone').value.trim();
+            const detailsArea = document.getElementById('user-details-area');
+
+            if (phone.length !== 11 || isNaN(phone)) {
+                showMessage('অনুগ্রহ করে সঠিক ১১ ডিজিটের ফোন নাম্বার দিন।', 'error');
+                detailsArea.innerHTML = `<p class="text-center text-red-500 p-4">সঠিক ফোন নাম্বার দিন।</p>`;
+                return;
+            }
+
+            const user = allUsers.find(u => u.phone === phone && !u.isAdmin);
+
+            if (!user) {
+                showMessage('এই ফোন নাম্বারে কোনো ইউজার পাওয়া যায়নি।', 'error');
+                detailsArea.innerHTML = `<p class="text-center text-red-500 p-4">ইউজার পাওয়া যায়নি।</p>`;
+                return;
+            }
+
+            const currentPackage = PACKAGES.find(p => p.id === user.packageId);
+            const packageOptions = PACKAGES.map(p => 
+                `<option value="${p.id}" ${user.packageId === p.id ? 'selected' : ''}>${p.name} (৳${formatToBengali(p.deposit)})</option>`
+            ).join('');
+
+            detailsArea.innerHTML = `
+                <div class="p-4 border rounded-xl shadow-md bg-white space-y-4 mt-4">
+                    <h3 class="text-xl font-bold text-center text-green-600">ইউজার: ${user.phone}</h3>
+                    <p class="text-sm font-medium">বর্তমান ব্যালেন্স: ৳${formatToBengali(user.balance)}</p>
+                    <p class="text-sm font-medium">মোট উইথড্র: ${formatToBengali(user.totalWithdrawals)} টি</p>
+                    <p class="text-sm font-medium">মোট রেফার: ${formatToBengali(user.referrals)} জন</p>
+                    <p class="text-sm font-medium text-red-500">প্যাকেজ: ${currentPackage ? currentPackage.name : 'Free'}</p>
+                    
+                    <div class="border-t pt-4 space-y-3">
+                        <label for="package-select" class="block text-sm font-medium text-gray-700">প্যাকেজ পরিবর্তন করুন</label>
+                        <select id="package-select" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="0">Free (প্যাকেজ নেই)</option>
+                            ${packageOptions}
+                        </select>
+                        <button onclick="handlePackageChange('${user.phone}')" class="btn-primary w-full flex items-center justify-center bg-blue-600 hover:bg-blue-700">
+                            প্যাকেজ আপডেট করুন
+                        </button>
+                    </div>
+
+                    <div class="border-t pt-4 space-y-3">
+                        <p class="text-sm font-medium text-gray-700">অ্যাডমিন অ্যাকশন</p>
+                        <button onclick="toggleBan('${user.phone}', ${user.isBanned})" class="${user.isBanned ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'} text-white w-full py-2 rounded-lg font-bold text-sm">
+                            <i data-lucide="${user.isBanned ? 'check' : 'ban'}" class="w-4 h-4 inline mr-1"></i> ${user.isBanned ? 'ইউজারকে আনব্যান করুন' : 'ইউজারকে ব্যান করুন'}
+                        </button>
+                    </div>
+                </div>
+            `;
+            // আইকন রেন্ডার
+            if (typeof createIcons === 'function') {
+                createIcons({ icons: { Check, Ban } });
+            }
+        }
+        
+        function handlePackageChange(phone) {
+            const packageId = parseInt(document.getElementById('package-select').value);
+            const userIndex = allUsers.findIndex(u => u.phone === phone);
+
+            if (userIndex === -1) {
+                showMessage('ইউজার খুঁজে পাওয়া যায়নি।', 'error');
+                return;
+            }
+            
+            allUsers[userIndex].packageId = packageId;
+            saveData();
+            
+            showMessage(`সফলভাবে ${phone} এর প্যাকেজ পরিবর্তন করা হয়েছে।`, 'success');
+            searchUserForDetails(); 
+        }
+
+        function toggleBan(phone, isBanned) {
+            const userIndex = allUsers.findIndex(u => u.phone === phone);
+            if (userIndex !== -1) {
+                allUsers[userIndex].isBanned = !isBanned;
+                saveData();
+                showMessage(`${phone} সফলভাবে ${!isBanned ? 'ব্যান' : 'আনব্যান'} করা হয়েছে।`, 'success');
+                renderAdminUsersUI();
+            }
+        }
+
+        function renderAdminMessagesUI() {
+            if (!currentUser || !currentUser.isAdmin) return;
+
+            const messageListHtml = supportMessages.slice().reverse().map(msg => `
+                <div class="message-card ${msg.status === 'Unread' ? 'border-l-4 border-blue-600 bg-blue-50' : 'border-l-4 border-gray-400 bg-gray-50'}" onclick="markMessageAsRead(${msg.id})">
+                    <div class="flex justify-between items-center">
+                        <p class="font-bold">${msg.phone} (${msg.subject === 'Deposit' ? 'ডিপোজিট' : 'সাপোর্ট'})</p>
+                        <span class="text-xs font-semibold ${msg.status === 'Unread' ? 'text-blue-600' : 'text-gray-500'}">${msg.status === 'Unread' ? 'নতুন' : 'পঠিত'}</span>
+                    </div>
+                    <p class="text-sm text-gray-700 mt-1">${msg.content.substring(0, 50)}...</p>
+                    <p class="text-xs text-gray-400 mt-1">${msg.date}</p>
+                </div>
+            `).join('');
+
+            mainContent.innerHTML = `
+                <div class="mb-4 flex justify-between items-center">
+                    <h2 class="text-xl font-bold flex items-center text-blue-600"><i data-lucide="mail" class="mr-2"></i> ইউজার মেসেজ</h2>
+                    <button onclick="renderAdminUI()" class="text-green-600 text-sm font-medium hover:underline">ফিরে যান</button>
+                </div>
+                <div class="space-y-3">
+                    ${messageListHtml.length > 0 ? messageListHtml : '<p class="text-center text-gray-500">কোনো মেসেজ পাওয়া যায়নি।</p>'}
+                </div>
+            `;
+            // আইকন রেন্ডার
+            if (typeof createIcons === 'function') {
+                createIcons({ icons: { Mail } });
+            }
+        }
+
+        function markMessageAsRead(id) {
+            const msgIndex = supportMessages.findIndex(m => m.id === id);
+            if (msgIndex !== -1 && supportMessages[msgIndex].status === 'Unread') {
+                supportMessages[msgIndex].status = 'Read';
+                saveData();
+                showMessage(`মেসেজ ID: ${formatToBengali(id)} পঠিত হিসেবে চিহ্নিত করা হয়েছে।`, 'success');
+                renderAdminMessagesUI();
+            }
+        }
+
+        function renderAdminWithdrawalsUI() {
+            if (!currentUser || !currentUser.isAdmin) return;
+
+            const pending = withdrawalRequests.filter(r => r.status === 'Pending').slice().reverse();
+            const completed = withdrawalRequests.filter(r => r.status !== 'Pending').slice().reverse();
+
+            const renderRequestList = (requests, title, color) => {
+                const listHtml = requests.map(req => `
+                    <div class="p-3 border rounded-lg shadow-sm ${req.status === 'Approved' ? 'bg-green-50' : req.status === 'Rejected' ? 'bg-red-50' : 'bg-yellow-50'}">
+                        <p class="font-bold text-lg">${req.phone} (${req.method})</p>
+                        <p class="text-xl font-bold ${color}">৳${formatToBengali(req.amount)}</p>
+                        <p class="text-sm text-gray-600">অ্যাকাউন্ট: ${req.account}</p>
+                        <p class="text-xs text-gray-400">তারিখ: ${req.date} | স্ট্যাটাস: ${req.status === 'Pending' ? 'পেন্ডিং' : req.status === 'Approved' ? 'অনুমোদিত' : 'বাতিল'}</p>
+                        
+                        ${req.status === 'Pending' ? `
+                            <div class="flex space-x-2 mt-3">
+                                <button onclick="updateWithdrawStatus(${req.id}, 'Approved')" class="bg-green-500 text-white text-xs px-3 py-1 rounded-full hover:bg-green-600">অনুমোদন</button>
+                                <button onclick="updateWithdrawStatus(${req.id}, 'Rejected')" class="bg-red-500 text-white text-xs px-3 py-1 rounded-full hover:bg-red-600">বাতিল</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+                
+                return `
+                    <h3 class="text-lg font-bold mt-4 mb-2 flex items-center ${color === 'text-red-600' ? 'text-red-600' : 'text-gray-600'}">
+                        <i data-lucide="bar-chart" class="w-4 h-4 mr-2"></i> ${title} (${formatToBengali(requests.length)})
+                    </h3>
+                    <div class="space-y-3">
+                        ${listHtml.length > 0 ? listHtml : '<p class="text-center text-gray-500 text-sm">কোনো রিকোয়েস্ট নেই।</p>'}
+                    </div>
+                `;
+            };
+
+            mainContent.innerHTML = `
+                <div class="mb-4 flex justify-between items-center">
+                    <h2 class="text-xl font-bold flex items-center text-red-600"><i data-lucide="dollar-sign" class="mr-2"></i> উইথড্র ম্যানেজমেন্ট</h2>
+                    <button onclick="renderAdminUI()" class="text-green-600 text-sm font-medium hover:underline">ফিরে যান</button>
+                </div>
+                ${renderRequestList(pending, 'পেন্ডিং রিকোয়েস্ট', 'text-red-600')}
+                ${renderRequestList(completed, 'সম্পন্ন রিকোয়েস্ট', 'text-gray-600')}
+            `;
+            // আইকন রেন্ডার
+            if (typeof createIcons === 'function') {
+                createIcons({ icons: { DollarSign, BarChart } });
+            }
+        }
+        
+        function updateWithdrawStatus(id, newStatus) {
+            const index = withdrawalRequests.findIndex(r => r.id === id);
+            if (index !== -1) {
+                withdrawalRequests[index].status = newStatus;
+
+                if (newStatus === 'Rejected') {
+                    const user = allUsers.find(u => u.phone === withdrawalRequests[index].phone);
+                    if (user) {
+                        const amountToRefund = withdrawalRequests[index].amount;
+                        
+                        // ব্যালেন্স ও উইথড্র কাউন্ট ফেরত
+                        const userIndex = allUsers.findIndex(u => u.phone === user.phone);
+                        if (userIndex !== -1) {
+                            allUsers[userIndex].balance += amountToRefund;
+                            allUsers[userIndex].totalWithdrawals -= 1;
+                            if (allUsers[userIndex].totalWithdrawals < 0) allUsers[userIndex].totalWithdrawals = 0;
+                        }
+
+                        showMessage(`৳${formatToBengali(amountToRefund)} ব্যালেন্স ফেরত দেওয়া হয়েছে ও উইথড্র কাউন্ট কমানো হয়েছে।`, 'success');
+                    }
+                }
+
+                saveData();
+                showMessage(`রিকোয়েস্ট ID ${formatToBengali(id)} স্ট্যাটাস পরিবর্তন করে ${newStatus === 'Approved' ? 'অনুমোদিত' : 'বাতিল'} করা হয়েছে।`, 'success');
+                renderAdminWithdrawalsUI();
+            }
+        }
+
+        function renderAdminBalanceTransferUI() {
+            if (!currentUser || !currentUser.isAdmin) return;
+
+            mainContent.innerHTML = `
+                <div class="mb-4 flex justify-between items-center">
+                    <h2 class="text-xl font-bold flex items-center text-yellow-600"><i data-lucide="trending-up" class="mr-2"></i> ব্যালেন্স ট্রান্সফার</h2>
+                    <button onclick="renderSuperAdminTools()" class="text-green-600 text-sm font-medium hover:underline">ফিরে যান</button>
+                </div>
+                
+                <div class="p-4 border rounded-xl shadow-md space-y-4 bg-yellow-50">
+                    <label for="search-phone" class="block text-sm font-medium text-gray-700">ইউজার ফোন নাম্বার (১১ ডিজিট)</label>
+                    <div class="flex space-x-2">
+                        <input id="search-phone" type="tel" placeholder="ইউজারের ফোন নাম্বার" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500" maxlength="11">
+                        <button onclick="searchUserForBalance()" class="btn-primary flex items-center p-3">
+                            <i data-lucide="search" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="transfer-result-area" class="mt-4">
+                    <p class="text-center text-gray-500 p-4">অনুসন্ধান করার জন্য একটি ফোন নাম্বার দিন।</p>
+                </div>
+            `;
+            // আইকন রেন্ডার
+            if (typeof createIcons === 'function') {
+                createIcons({ icons: { TrendingUp, Search } });
+            }
+        }
+        
+        function searchUserForBalance() {
+            const phone = document.getElementById('search-phone').value.trim();
+            const resultArea = document.getElementById('transfer-result-area');
+
+            if (phone.length !== 11 || isNaN(phone)) {
+                showMessage('অনুগ্রহ করে সঠিক ১১ ডিজিটের ফোন নাম্বার দিন।', 'error');
+                resultArea.innerHTML = `<p class="text-center text-red-500 p-4">সঠিক ফোন নাম্বার দিন।</p>`;
+                return;
+            }
+
+            const user = allUsers.find(u => u.phone === phone && !u.isAdmin);
+
+            if (!user) {
+                showMessage('এই ফোন নাম্বারে কোনো ইউজার পাওয়া যায়নি।', 'error');
+                resultArea.innerHTML = `<p class="text-center text-red-500 p-4">এই ফোন নাম্বারে কোনো ইউজার পাওয়া যায়নি।</p>`;
+                return;
+            }
+
+            resultArea.innerHTML = `
+                <div class="p-4 border rounded-xl shadow-md bg-white space-y-4 mt-4">
+                    <h3 class="text-xl font-bold text-center text-green-600">ইউজার: ${user.phone}</h3>
+                    <p class="text-lg font-medium text-center">বর্তমান ব্যালেন্স: ৳<strong id="current-user-balance">${formatToBengali(user.balance)}</strong></p>
+                    
+                    <label for="transfer-amount" class="block text-sm font-medium text-gray-700">পরিমাণ (যোগ/হ্রাস)</label>
+                    <input id="transfer-amount" type="number" placeholder="টাকার পরিমাণ (ধনাত্মক/ঋণাত্মক)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                    
+                    <button onclick="handleBalanceTransfer('${user.phone}')" class="btn-primary w-full flex items-center justify-center">
+                        <i data-lucide="dollar-sign" class="w-5 h-5 mr-2"></i> ব্যালেন্স ট্রান্সফার করুন
+                    </button>
+                </div>
+            `;
+            // আইকন রেন্ডার
+            if (typeof createIcons === 'function') {
+                createIcons({ icons: { DollarSign } });
+            }
+        }
+
+        function handleBalanceTransfer(phone) {
+            const amount = parseInt(document.getElementById('transfer-amount').value);
+            
+            if (isNaN(amount) || amount === 0) {
+                showMessage('স্থানান্তরের পরিমাণ ০ হতে পারে না।', 'error');
+                return;
+            }
+
+            const userIndex = allUsers.findIndex(u => u.phone === phone);
+            if (userIndex === -1) {
+                showMessage('ইউজার খুঁজে পাওয়া যায়নি।', 'error');
+                return;
+            }
+            
+            const oldBalance = allUsers[userIndex].balance;
+            let newBalance = oldBalance + amount;
+
+            if (newBalance < 0) {
+                 newBalance = 0;
+                 showMessage('ব্যালেন্স ০ এর নিচে নামানো যাবে না।', 'error');
+                 return;
+            }
+
+            allUsers[userIndex].balance = newBalance;
+            saveData();
+            
+            const balanceElement = document.getElementById('current-user-balance');
+            if(balanceElement) {
+                balanceElement.textContent = formatToBengali(newBalance);
+            }
+            document.getElementById('transfer-amount').value = '';
+
+            if (amount > 0) {
+                showMessage(`৳${formatToBengali(Math.abs(amount))} সফলভাবে ${phone}-এ যোগ করা হয়েছে।`, 'success');
+            } else {
+                showMessage(`৳${formatToBengali(Math.abs(amount))} সফলভাবে ${phone} থেকে হ্রাস করা হয়েছে।`, 'success');
+            }
+        }
+
+        function renderAdminUsersUI() {
+            if (!currentUser || !currentUser.isAdmin) return;
+            
+            const userListHtml = allUsers
+                .filter(u => !u.isAdmin)
+                .map(user => `
+                    <div class="user-card ${user.isBanned ? 'banned' : ''}">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="font-bold text-lg">${user.phone} ${user.isBanned ? '(ব্যান)' : ''}</p>
+                                <p class="text-sm text-gray-500">ব্যালেন্স: ৳${formatToBengali(user.balance)}</p>
+                                <p class="text-xs text-gray-400">রেফার: ${formatToBengali(user.referrals)} জন | প্যাকেজ: ${PACKAGES.find(p=>p.id===user.packageId)?.name || 'Free'}</p>
+                            </div>
+                            <div class="space-x-2 flex items-center">
+                                <button onclick="renderAdminBalanceTransferUI()" class="text-green-500 hover:text-white hover:bg-green-500 p-1 rounded-full bg-green-100" title="ব্যালেন্স পরিবর্তন">
+                                    <i data-lucide="refresh-ccw" class="w-5 h-5"></i>
+                                </button>
+                                <button onclick="toggleBan('${user.phone}', ${user.isBanned})" class="${user.isBanned ? 'text-blue-500 bg-blue-100' : 'text-red-500 bg-red-100'} hover:opacity-80 p-1 rounded-full" title="${user.isBanned ? 'আনব্যান করুন' : 'ব্যান করুন'}">
+                                    <i data-lucide="${user.isBanned ? 'check' : 'ban'}" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+            mainContent.innerHTML = `
+                <div class="mb-4 flex justify-between items-center">
+                    <h2 class="text-xl font-bold flex items-center text-green-600"><i data-lucide="users" class="mr-2"></i> ইউজার লিস্ট</h2>
+                    <button onclick="renderAdminUI()" class="text-green-600 text-sm font-medium hover:underline">ফিরে যান</button>
+                </div>
+                <div class="space-y-3">
+                    ${userListHtml.length > 0 ? userListHtml : '<p class="text-center text-gray-500">কোনো ইউজার পাওয়া যায়নি।</p>'}
+                </div>
+            `;
+            // আইকন রেন্ডার
+            if (typeof createIcons === 'function') {
+                createIcons({ icons: { Users, RefreshCcw, Ban, Check } });
+            }
+        }
+
+        function clearLocalData() {
+             if (confirm("আপনি কি নিশ্চিত? সমস্ত লোকাল ইউজার ও উইথড্র ডেটা মুছে যাবে এবং অ্যাডমিন অ্যাকাউন্ট রিক্রিয়েট হবে।")) {
+                localStorage.clear(); 
+                showMessage('সমস্ত ডেটা সফলভাবে রিসেট করা হয়েছে।', 'success');
+                loadData(); 
+             }
+        }
+
+
+        // --- প্রধান রেন্ডারিং ফাংশন (আপডেট করা হয়েছে) ---
+        function renderUI() {
+            if (currentUser) {
+                if (currentUser.isAdmin) {
+                    renderAdminUI();
+                } else {
+                    renderUserUI();
+                }
+            } else {
+                // কোনো ইউজার লগইন করা না থাকলে সরাসরি রেজিস্ট্রেশন UI দেখানো হবে
+                renderRegisterUI(); 
+            }
+        }
+
+        // --- অ্যাপ শুরু করা ---
+        
+        window.onload = function() {
+            loadData();
+        };
+
+    </script>
+</body>
+</html>
